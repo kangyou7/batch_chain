@@ -1,6 +1,7 @@
 package com.glyde.mall.batch.job.sample;
 
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.batch.MyBatisBatchItemWriter;
 import org.mybatis.spring.batch.MyBatisCursorItemReader;
 import org.mybatis.spring.batch.builder.MyBatisBatchItemWriterBuilder;
 import org.mybatis.spring.batch.builder.MyBatisCursorItemReaderBuilder;
@@ -14,7 +15,6 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -69,12 +69,13 @@ public class XASampleJobConfig {
 	 */
 	@Bean(name = "com.glyde.mall.batch.job.sample.XAsampleJob")
 	public Job sampleJob() throws Exception {
-		return this.jobs.get("com.glyde.mall.batch.job.sample.XAsampleJob").start(insertGlydeToCJStep()) // insertGlydeToCJStep
-																											// 시작
+		return this.jobs.get("com.glyde.mall.batch.job.sample.XAsampleJob")
+				.start(insertGlydeToCJStep()) // insertGlydeToCJStep 시작
 				.on("*").to(updateCJToGlydeStep()) // insertGlydeToCJStep작업완료후,updateCJToGlydeStep진행.
 				.from(insertGlydeToCJStep()).on("FAILED").to(updateCJToGlydeStep()) // insertGlydeToCJStep실패라도,
 																					// updateCJToGlydeStep진행.
 				.end().incrementer(incrementer).listener(jobListener).build();
+		
 	}
 
 	/**
@@ -87,7 +88,12 @@ public class XASampleJobConfig {
 	public Step insertGlydeToCJStep() throws Exception {
 		return steps.get("com.glyde.mall.batch.job.sample.XAinsertStep").listener(stepListener)
 				.allowStartIfComplete(true).<PeopleDto, PeopleDto>chunk(CHUNK_SIZE).reader(glydeReader())
-				.writer(cjWriter()).build();
+				.writer(cjWriter())
+				.faultTolerant()
+				.skipLimit(10)
+				.skip(Exception.class)
+				.build();
+
 	}
 
 	/**
@@ -147,9 +153,10 @@ public class XASampleJobConfig {
 	 */
 	@Bean(name = "com.glyde.mall.batch.job.sample.cjWriter")
 	@StepScope
-	public ItemWriter<PeopleDto> cjWriter() {
+	public MyBatisBatchItemWriter<PeopleDto> cjWriter() {
 		return new MyBatisBatchItemWriterBuilder<PeopleDto>().sqlSessionFactory(DB_CJ)
-				.statementId("com.glyde.mall.batch.job.sample.mapper.PeopleMapper.insert").build();
+				.statementId("com.glyde.mall.batch.job.sample.mapper.PeopleMapper.insert")
+				.build();
 	}
 
 	/**
@@ -159,7 +166,7 @@ public class XASampleJobConfig {
 	 */
 	@Bean(name = "com.glyde.mall.batch.job.sample.glydeWriter")
 	@StepScope
-	public ItemWriter<PeopleDto> glydeWriter() {
+	public MyBatisBatchItemWriter<PeopleDto> glydeWriter() {
 		return new MyBatisBatchItemWriterBuilder<PeopleDto>().sqlSessionFactory(DB_GLYDE)
 				.statementId("com.glyde.mall.batch.job.sample.mapper.PeopleMapper.update").build();
 	}

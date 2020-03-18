@@ -1,6 +1,7 @@
 package com.glyde.mall.batch.job.sample;
 
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.batch.MyBatisBatchItemWriter;
 import org.mybatis.spring.batch.builder.MyBatisBatchItemWriterBuilder;
 import org.mybatis.spring.batch.builder.MyBatisPagingItemReaderBuilder;
 import org.springframework.batch.core.Job;
@@ -14,7 +15,6 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -157,7 +157,7 @@ public class SampleJobParameterConfig {
      */
     @Bean(name="com.glyde.mall.batch.job.sample.sampleParameterWriter")
     @StepScope
-    public ItemWriter<TestDto> sampleWriter(){
+    public MyBatisBatchItemWriter<TestDto> sampleWriter(){
         return new MyBatisBatchItemWriterBuilder<TestDto>()
                 .sqlSessionFactory(sqlSessionFactory)
                 .statementId("com.glyde.mall.batch.job.sample.mapper.TestMapper.update")
